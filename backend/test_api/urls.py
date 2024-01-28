@@ -33,6 +33,10 @@ async def del_api(request_data:DeleteProject):
 async def create_api(request_data: Input):
     return await TestObject.query_score_data(request_data.dict())
 
+@router.post(path="/compare",summary="json对比"):
+async def compare(request_data):
+    return await TestObject.update_data(request_data.dict())
+
 #
 # @app.post("/uploadfile/")
 # async def upload_excel_file(file: UploadFile = File(...)):

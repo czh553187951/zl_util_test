@@ -16,6 +16,8 @@ else:
     LOG_FILENAME = f"/home/www/logs/{FILE_NAME}"
 LOG_LEVEL = "INFO"
 logs = logger
+FEISHUAPPID = "cli_a327ff71dd3b500d"
+FEISHUAPPSECRET = "HutKhTyA0wvfYrO6AKG1cd3YJJoDZutF"
 
 
 async def system_logs(msg=''):
