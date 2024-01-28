@@ -5,6 +5,7 @@ import asyncio
 import traceback
 from datetime import datetime
 
+from backend.settings import *
 
 
 
@@ -19,42 +20,10 @@ class FeiShuPrompt(object):
         self.feishu_user_code = feishu_user_code
         self.send_type = send_type
 
-    async def fei_shu_send(self, all_content):
-        feishu_user_code = self.feishu_user_code.split(",")
-        for i in feishu_user_code:
-            if self.send_type == "1":
-                await SystemBasisData().send_data(i, all_content)
-            else:
-                await SystemBasisData().group_send_data(i, all_content)
-
-    async def fei_shu_send_data(self, batch_code):
-        task_type = self.task_type == "1" and "用例套件" or self.task_type == "2" and "脚本套件"
-        data_time = time.strftime("%Y-%m-%d %H:%M:%S")
-        all_content = self.base_content.format(task_name=self.task_name, task_type=task_type, data_time=data_time)
-        select_object = await CaseRunResult.filter(deleted=0, batch_code=batch_code).first()
-        if not select_object:
-            all_content += "结果: 任务异常，无报告"
-            await self.fei_shu_send(all_content)
-            return False
-        case_num = select_object.case_number
-        skipped_num = select_object.skipped_case_number
-        fail_nam = select_object.fail_case_number
-        pass_num = case_num - skipped_num - fail_nam
-        pass_percentage = case_num and round(pass_num * 100/(case_num - skipped_num), 5) or 0
-        user_data = await SysUser.filter(user_name=select_object.executor, deleted=0).first()
-        user_name = user_data and user_data.real_name or ""
-        project_data = await Project.filter(project_code=select_object.project_code, deleted=0).first()
-        project_name = project_data and project_data.project_name or ""
-        all_content += self.case_content.format(project_name=project_name, user_name=user_name, case_num=case_num,
-                                                pass_num=pass_num, skipped_num=0, fail_nam=fail_nam,
-                                                pass_percentage=pass_percentage, report_url=select_object.report_path)
-
-        await self.fei_shu_send(all_content)
-
 
 class FeiShuOpenApi(object):
     def __init__(self):
-        self.host = "https://open.feishu.cn/open-apis"
+        selfhost = "https://open.feishu.cn/open-apis"
         self.authorization = None
         self.app_token = None
 
@@ -252,91 +221,6 @@ class FeiShuCaseCheck(FeiShuBase):
                 await asyncio.sleep(10)
         return True
 
-
-class FeiShuAutoCaseCoverRate(FeiShuBase):
-    def __init__(self, table_app_token):
-        super().__init__()
-        self.table_app_token = table_app_token
-
-    async def create_data(self, table_id):
-        create_list = []
-        await db_init()
-        auto_object = AutoCreateCase(role="3")
-        system_result = await auto_object.system_data
-        project_result = await asyncio.gather(*[auto_object.project_data(system_code=i.get("project_code"))
-                                                for i in system_result])
-        for i, k in zip(system_result, project_result):
-            for j in k:
-                new_dict = {
-                    "小队": i.get("project_name"),
-                    "系统": j.get("project_name"),
-                    "达标接口数": j.get("conform_api"),
-                    "未标接口数(5.1前)": j.get("unfinished_api"),
-                    "5.1后未达标用例接口数": j.get("part_no_case_api")
-                }
-                create_list.append({"fields": new_dict})
-        await self.login_delete_create(self.table_app_token, table_id, create_list)
-        return True
-
-
-class FeiShuScenarioData(FeiShuBase):
-
-    async def scenario_case_run_time(self, table_id):
-        create_list = []
-        await db_init()
-        date_result = await RunRecordsService(start_date="2023-08-01", end_date="2023-08-31").run_case_time
-        for i in date_result:
-            new_dict = {
-                "场景id": int(i.get("case_code")),
-                "场景名称": i.get("scenario_case_name"),
-                "创建人": i.get("real_name"),
-                "平均执行时间(秒)": int(i.get("avg_data")),
-                "成功率": float(i.get("success_rate")),
-                "运行次数": i.get("run_number"),
-                "最后执行时间": i.get("latest_time")
-            }
-            create_list.append({"fields": new_dict})
-        await self.login_delete_create("wikcnQBauab5VB5tlD0b6b9JBkg", table_id, create_list)
-        return True
-
-    async def production_case_run_time(self, records_data):
-        """
-        造数用例运行数量及时间
-        :param records_data: 数据
-        :return:
-        """
-        await self.login_app_token("Gy1EwH5L5iaMBHkrBsVcUhvdnfe")
-        new_data = {
-            "造数ID": records_data.get("case_id"),
-            "造数名称": records_data.get("case_name"),
-            "造数数量": records_data.get("run_number"),
-            "造数时长": records_data.get("use_time"),
-            "造数步骤数": records_data.get("step_number"),
-            "创建人": records_data.get("created_by"),
-        }
-        await self.create_tables("tbli9lzensOUe6FK", new_data)
-
-
-class FeiShuTimeTaskData(FeiShuBase):
-    async def time_task_run_data(self, records_data):
-        """
-        套件定时任务执行数据
-        :param records_data: 数据
-        :return:
-        """
-        await self.login_app_token("HFxhwpP4yixBprkdPaZcImPjn5d")
-        for i in records_data:
-            new_data = {
-                "系统名称": i.get("system_data"),
-                "项目名称": i.get("project_name"),
-                "套件ID": str(i.get("set_id")),
-                "用例总数": i.get("case_number"),
-                "失败用例总数": i.get("fail_num"),
-                "跳过用例数": i.get("skipped_num") or 0,
-                "类型": i.get("set_type")
-            }
-            await self.create_tables("tblLHT6DTBkpmRoM", new_data)
-        return True
 
 
 if __name__ == "__main__":
