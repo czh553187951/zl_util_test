@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
 import time
 import httpx
 import asyncio
 import traceback
 from datetime import datetime
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../../')
 
-from backend.settings import *
+from backend.settings import FEISHUAPPID, FEISHUAPPSECRET
+
 
 
 
@@ -23,7 +27,7 @@ class FeiShuPrompt(object):
 
 class FeiShuOpenApi(object):
     def __init__(self):
-        selfhost = "https://open.feishu.cn/open-apis"
+        self.host = "https://open.feishu.cn/open-apis"
         self.authorization = None
         self.app_token = None
 
@@ -224,7 +228,7 @@ class FeiShuCaseCheck(FeiShuBase):
 
 
 if __name__ == "__main__":
-    asyncio.run(FeiShuCaseCheck(table_app_token="UXU7w6zT5i0NTukc6f8cydc6nvg").select_config(table_id="tblgTPzpt16oBypG"))
+    asyncio.run(FeiShuCaseCheck(table_app_token="wikcndNaUugfhyqrZejf4QijKWc").select_tables(table_id="tblEHP3LhqpELQjZ"))
     # asyncio.run(FeiShuScenarioData().scenario_case_run_time("tblZNYNUtE9Jr2kH"))
     # asyncio.run(FeiShuCaseCheck(table_app_token="UXU7w6zT5i0NTukc6f8cydc6nvg").select_config(table_id="tblgTPzpt16oBypG"))
     # asyncio.run(FeiShuAutoCaseCoverRate(table_app_token="Amu5wE37Oi8tMakOMkScOYlYnqg").create_data(
