@@ -4,7 +4,6 @@ import sys
 import time
 import httpx
 import asyncio
-import traceback
 from datetime import datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../../')
 
@@ -173,62 +172,50 @@ class FeiShuBase(FeiShuOpenApi):
         await self.batch_create_tables(table_id, create_list)
 
 
-class FeiShuCaseCheck(FeiShuBase):
+class FeiShuIterationCheck(FeiShuBase):
     def __init__(self, table_app_token):
         super().__init__()
         self.table_app_token = table_app_token
 
-    async def create_data(self, table_id, username, password):
-        try:
-            create_list = []
-            check_data = await CheckTestCase(username=username, password=password).check_all_case
-            logs.warning(f"用户{username}: 检查异常数据{len(check_data)}")
-            for i in check_data:
-                new_dict = {
-                    "项目名称": i.get("project_name"),
-                    "测试任务名称": i.get("task_name"),
-                    "用例未关联需求": ",".join(i.get("demand_data")),
-                    "用例不符合规范（步骤/预期）": ",".join(i.get("step_expected")),
-                    "轮次存在用例未执行": ",".join(i.get("no_exec")),
-                    "轮次未包含【其它】": i.get("display_value") and "是" or "否",
-                    "缺陷未关联用例": ",".join(i.get("bug_data")),
-                    "需求未关联用例": ",".join(i.get("issue_data")),
-                    "迭代未关联评审单": i.get("review_status") and "是" or "否",
-                    "测试任务创建时间": i.get("task_create_time") and datetime.fromisoformat(i.get("task_create_time")).timestamp() * 1000 or 0,
-                    "测试任务负责人": ",".join(i.get("task_principal_name")),
-                }
-                create_list.append({"fields": new_dict})
-            await self.delete_data(table_id)
-            await self.batch_create_tables(table_id, create_list)
-            url_str = f"https://ztn.feishu.cn/wiki/{self.table_app_token}?table={table_id}"
-            content = f"devops用例检查\n【异常数量】: {len(create_list)}\n【链接】: {url_str}"
-            create_list and await SystemBasisData().send_data(username, content)
-        except Exception as E:
-            logs.error(f"devops同步异常: {str(traceback.format_exc())}")
-        return True
+    # async def query_data(self, table_id):
+    #     try:
+    #         await self.select_tables(table_id)
+    #         url_str = f"https://ztn.feishu.cn/wiki/{self.table_app_token}?table={table_id}"
+    #     except Exception as E:
+    #         logs.error(f"devops同步异常: {str(traceback.format_exc())}")
+    #     return True
 
-    async def select_config(self,  table_id):
+    async def query_data(self,  table_id):
         """
-        查询配置表数据
+        查询表数据
         :param table_id: 多维表格数据表的唯一标识符
         :return:
         """
         await self.login_app_token(self.table_app_token)
         result = await self.select_tables(table_id)
-        for i in result.get("items_data"):
-            usr_id = i.get("fields").get("usr_id").lower()
-            password = i.get("fields").get("pwd")
-            table_id = i.get("fields").get("table_id")
-            status = i.get("fields").get("status")
-            if usr_id and password and table_id and status == "1":
-                await self.create_data(**{"username": usr_id, "password": password, "table_id": table_id})
-                await asyncio.sleep(10)
+        return True
+    
+    async def search_records(self,  table_id):
+        """
+        查询表数据
+        :param table_id: 多维表格数据表的唯一标识符
+        :return:
+        """
+        await self.login_app_token(self.table_app_token)
+        result = await self.select_tables(table_id)
+        return True
+    async def add_data(self,  table_id):
+        """
+        插入表数据
+        :param table_id: 多维表格数据表的唯一标识符
+        :return:
+        """
+        await self.login_app_token(self.table_app_token)
+        result = await self.select_tables(table_id)
         return True
 
-
-
 if __name__ == "__main__":
-    asyncio.run(FeiShuCaseCheck(table_app_token="wikcndNaUugfhyqrZejf4QijKWc").select_tables(table_id="tblEHP3LhqpELQjZ"))
+    asyncio.run(FeiShuIterationCheck(table_app_token="wikcndNaUugfhyqrZejf4QijKWc").query_data(table_id="tblk2JYb9XOnm4zD"))
     # asyncio.run(FeiShuScenarioData().scenario_case_run_time("tblZNYNUtE9Jr2kH"))
     # asyncio.run(FeiShuCaseCheck(table_app_token="UXU7w6zT5i0NTukc6f8cydc6nvg").select_config(table_id="tblgTPzpt16oBypG"))
     # asyncio.run(FeiShuAutoCaseCoverRate(table_app_token="Amu5wE37Oi8tMakOMkScOYlYnqg").create_data(
