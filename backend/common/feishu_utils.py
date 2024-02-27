@@ -215,7 +215,7 @@ class FeiShuIterationCheck(FeiShuBase):
         return True
 
 if __name__ == "__main__":
-    asyncio.run(FeiShuIterationCheck(table_app_token="wikcndNaUugfhyqrZejf4QijKWc").query_data(table_id="tblk2JYb9XOnm4zD"))
+    asyncio.run(FeiShuIterationCheck(table_app_token="tblZlUwRGZKoAHfV").query_data(table_id="tblk2JYb9XOnm4zD"))
     # asyncio.run(FeiShuScenarioData().scenario_case_run_time("tblZNYNUtE9Jr2kH"))
     # asyncio.run(FeiShuCaseCheck(table_app_token="UXU7w6zT5i0NTukc6f8cydc6nvg").select_config(table_id="tblgTPzpt16oBypG"))
     # asyncio.run(FeiShuAutoCaseCoverRate(table_app_token="Amu5wE37Oi8tMakOMkScOYlYnqg").create_data(
