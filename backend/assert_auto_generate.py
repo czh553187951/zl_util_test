@@ -4,7 +4,7 @@ import json
 import requests
 
 env="uat"           #环境
-flowCode="CNETCIS793820591328284674"        #当前环境下的主单号
+flowCode="CNETCIS796105553717116929"        #当前环境下的主单号
 #需要判断的字段规则，用于生成断言的字段
 eq_rules=[
      "taskStatus",
@@ -15,6 +15,7 @@ eq_rules=[
 #存在不在当前区域任务的规则，如果不需要可以清空数组
 notin_rules=[
     "T000000044",
+    "T000000045"
 ]
 
 url="http://gateway."+env+".yunexpress.com/gw/opd-ofp-portal"
@@ -205,8 +206,6 @@ def generate_jms_path_expressions(task_response):
                     "checked": True
                 }
                 expressions.append(expression)
-        # elif any(rule1 == task_instance.taskTypeCode for task_instance in task_response.taskInstanceDtos if any(rule1 in notin_rules for rule1 in [rule])):
-        #         continue
         else:
             task_type_counts = Counter(task_instance.taskTypeCode for task_instance in task_response.taskInstanceDtos)
             for task_instance in task_response.taskInstanceDtos:
@@ -258,7 +257,6 @@ def generate_jms_path_expressions(task_response):
     json_result = json.dumps(expressions, indent=4)  # 转换为 JSON 字符串
     
     output_file="output.json"
-    # Write the JSON result to a file
     with open(output_file, 'w') as file:
         file.write(json_result)
     
