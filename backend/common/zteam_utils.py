@@ -32,7 +32,7 @@ class ZteamLogin(object):
         self.name = username
         self.password = password
     @property
-    def login_devops(self):
+    def login_zteam(self):
         cookie_value = ""
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path="C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1045\\chrome-win\\chrome.exe", headless=True)
@@ -43,6 +43,7 @@ class ZteamLogin(object):
             page.fill("#password2", self.password)
             page.click("#fm1 > input.login_in")
             cookies = page.context.cookies()
+            print(cookies)
             for cookie in cookies:
                 if cookie['name'] == "bk_token":
                     cookie_value = f"X-DEVOPS-TENANT-ID=ZTN; bk_token={cookie['value']}"
@@ -58,7 +59,7 @@ class ZteamBaseData(ZteamLogin):
         super().__init__(username, password)
         self.host = "https://zteam.ztn.cn"
         self.divmod_number = 15
-        self.cookie = super().login_devops
+        self.cookie = super().login_zteam
 
     def request_data(self, method, url, headers, params=None, json=None, project_code=None, number=5):
         try:
@@ -68,7 +69,7 @@ class ZteamBaseData(ZteamLogin):
                                                 timeout=40)
             if response.status_code == 401:
                 if number < 0: raise ValueError("认证失败")
-                self.cookie = super().login_devops
+                self.cookie = super().login_zteam
                 headers = {
                     "Cookie": project_code and f"{self.cookie};X-DEVOPS-PROJECT-ID={project_code}" or self.cookie}
                 return self.request_data(method, url, headers, params, json, project_code=project_code,
@@ -102,7 +103,7 @@ class ZteamBaseData(ZteamLogin):
 
 if __name__ == '__main__':
 
-    a = ZteamBaseData(username="zt23165", password="czh930419881X")
+    a = ZteamBaseData(username="zt23165", password="czh19930419881X")
     # result = asyncio.run(a.issue_info("k98e9d"))
-    result=a.teration_info_list()
+    result=a.select_bug()
     print(result)

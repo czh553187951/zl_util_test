@@ -198,6 +198,8 @@ class FeiShuTestData(FeiShuBase):
     def __init__(self, table_app_token):
         super().__init__()
         self.table_app_token = table_app_token
+        self.login_app_token(self.table_app_token)
+        self.devops = DevopsBaseData(username="zt23165", password="czh930419881X")
 
 
     def query_data(self,  table_id):
@@ -212,7 +214,7 @@ class FeiShuTestData(FeiShuBase):
         return result
 
         
-    def add_data(self, table_id):
+    def add_teration_data(self, table_id):
         """
         插入表数据
         :param table_id: 多维表格数据表的唯一标识符
@@ -224,30 +226,63 @@ class FeiShuTestData(FeiShuBase):
         create_list = []
         feishutable = self.query_data(table_id)
         for i in check_data:
-            found_match = False  # 布尔变量，用于标记是否找到匹配的迭代名称
-            for feishudata in feishutable['items_data']:
-                if i.get("title") == feishudata['fields']['迭代名称']['text']:
-                    found_match = True
-                    break
-            else:
-                if not found_match:
-                    print(i.get("state"))
-                    new_dict = {
+            new_dict = {
                         "计划提测时间": self.convert_to_milliseconds(i.get("testStartDate")),
                         "计划转验时间": self.convert_to_milliseconds(i.get("testEndDate")),
                         "迭代名称": {"text": i.get("title"), "link": f"https://devops.ztn.cn/console/vteam/{i.get('projectId')}/iteration/overview?id={i.get('id')}"},
                         "迭代完成时间": self.convert_to_milliseconds(i.get("endDate")),
                         "迭代开始时间": self.convert_to_milliseconds(i.get("startDate")),
                         "迭代状态": self.convert_to_state(i.get("state")),
-                    }
-                    create_list.append({"fields": new_dict})
-                    
+            }
+            create_list.append({"fields": new_dict})
+        self.delete_data(table_id)
         self.batch_create_tables(table_id, create_list)
         return True
 
+
+    def add_check_data(self, table_id):
+        """
+        插入表数据
+        :param table_id: 多维表格数据表的唯一标识符
+        :return:
+        """
+
+        check_data = self.devops.teration_info_list()
+        report_list = self.devops.test_report_list()
+        create_set = set()
+        for check_item in check_data:
+            for report_item in report_list:
+                if check_item.get("title") == report_item.get("迭代名称") and ("提测" in report_item.get("name") or "自测" in report_item.get("name")):
+                    create_set.add(str({
+                        "fields": {
+                            "迭代名称": check_item.get("title"),
+                            "提测报告": "已发送",
+                            "迭代状态": self.convert_to_state(check_item.get("state")),
+                            # "迭代名称": {"text": check_item.get("title"), "link": f"https://devops.ztn.cn/console/vteam/{check_item.get('projectId')}/iteration/overview?id={check_item.get('id')}"},
+                            # "迭代完成时间": self.convert_to_milliseconds(check_item.get("endDate")),
+                            # "迭代开始时间": self.convert_to_milliseconds(check_item.get("startDate")),
+                            # "迭代状态": self.convert_to_state(check_item.get("state")),
+                        }
+                    }))
+                else:
+                    create_set.add(str({
+                        "fields": {
+                            "迭代名称": check_item.get("title"),
+                            "提测报告": "未发送",
+                            "迭代状态": self.convert_to_state(check_item.get("state")),
+
+                        }
+                    }))
+
+        create_list = [eval(record_str) for record_str in create_set]
+        self.delete_data(table_id)
+        self.batch_create_tables(table_id, create_list)
+        return True
+
+
 if __name__ == "__main__":
-    a=FeiShuTestData(table_app_token="G1YXwnVffidPimkG2X4cebtJnfh").add_data(table_id="tbleCErolm5pqcJR")
-    # print(json.dumps(a, ensure_ascii=False))
+    a=FeiShuTestData(table_app_token="G1YXwnVffidPimkG2X4cebtJnfh").add_check_data(table_id="tbl73bs0Uj8ikRvA")
+    print(json.dumps(a, ensure_ascii=False))
     # print(os.path.dirname(os.path.abspath()))
     # asyncio.run(FeiShuScenarioData().scenario_case_run_time("tblZNYNUtE9Jr2kH"))
     # asyncio.run(FeiShuCaseCheck(table_app_token="UXU7w6zT5i0NTukc6f8cydc6nvg").select_config(table_id="tblgTPzpt16oBypG"))

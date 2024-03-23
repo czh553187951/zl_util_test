@@ -107,8 +107,9 @@ class DevopsBaseData(DevopsLogin):
         """
         url = f"{self.host}/ms/ctest/api/user/task/page?num=1&size=200"
         headers = {"Cookie": f"{self.cookie};X-DEVOPS-PROJECT-ID={project_code}"}
-        json = {"keyword": ""}
-        result = self.request_data(method="POST", url=url, headers=headers, project_code=project_code, json=json)
+        json = {"keyword": "",}
+        res = requests.post(url=url, headers=headers,  json=json)
+        result=res.json()
         records = (result.get("data") or {}).get("records")
         if not records: return []
         return records
@@ -293,7 +294,7 @@ class DevopsBaseData(DevopsLogin):
     
     def teration_info(self, project_code: str):
         """查询迭代信息"""
-        url = f"{self.host}/ms/vteam/api/user/issue_sprint/{project_code}/flat?state=ACTIVE,NOT_STARTED"
+        url = f"{self.host}/ms/vteam/api/user/issue_sprint/{project_code}/flat?state=ACTIVE,NOT_STARTED,SUSPEND,COMPLETE,ABORTED"
         headers = {"Cookie": f"{self.cookie};X-DEVOPS-PROJECT-ID={project_code}"}
         res = requests.get(url,  headers=headers)
         result=res.json()
@@ -301,9 +302,20 @@ class DevopsBaseData(DevopsLogin):
             return False
         return result.get("data").get("content")
 
+    def report_info(self, project_code: str,task_code: str):
+        """查询迭代信息"""
+        url = f"{self.host}/ms/ctest/api/user/report/page"
+        headers = {"Cookie": f"{self.cookie};X-DEVOPS-PROJECT-ID={project_code}"}
+        payload={"taskId": task_code,  "page": 1, "pageSize": 200}
+        res = requests.post(url,  headers=headers,json=payload)
+        result=res.json()
+        if not result.get("data"):
+            return False
+        return result.get("data").get("records")
+
 
     def star_project_list(self):
-        """查询迭代信息"""
+        """查询收藏项目信息"""
         url = f"{self.host}/projectmanager/api/user/project/cw/selectByType?showTree=false&haveUser=false"
         headers = {"Cookie": f"{self.cookie}"}
         res = requests.get(url,  headers=headers)
@@ -318,25 +330,48 @@ class DevopsBaseData(DevopsLogin):
         """查询收藏项目的迭代信息"""
         teration_list = []
         
-        project_codes = self.star_project_list()  # 获取star_project_list方法返回的projectCode列表
+        project_codes = self.star_project_list()  
         for project_code in project_codes:
-            teration_info_result = self.teration_info(project_code)  # 调用teration_info方法获取迭代信息
+            teration_info_result = self.teration_info(project_code)  
             teration_list.extend(teration_info_result)
         
         # return json.dumps(teration_list,ensure_ascii=False)
         return teration_list
 
 
-    
-
+    def test_task_list(self):
+        """查询收藏项目的测试任务信息"""
+        test_task_list = []
+        project_codes = self.star_project_list()  
+        for project_code in project_codes:
+            task_info_result = self.select_case_task(project_code)  
+            for index, task_info in enumerate(task_info_result):
+                task_info_result[index]['project_code'] = project_code
+            test_task_list.extend(task_info_result)
+        return test_task_list
+        
+    def test_report_list(self):
+        """查询收藏项目的测试报告信息"""
+        test_report_list = []
+        task_codes = self.test_task_list()  
+        for task_code in task_codes:
+            reprot_info_result = self.report_info(task_code["project_code"],task_code["id"]) 
+            for index, report_info in enumerate(reprot_info_result):
+                reprot_info_result[index]['迭代名称'] = task_code["testContent"]["testContentDesc"]
+            test_report_list.extend(reprot_info_result)
+        # return json.dumps(test_report_list,ensure_ascii=False)
+        return test_report_list
 
 
 if __name__ == '__main__':
 
+
     a = DevopsBaseData(username="zt23165", password="czh930419881X")
     # result = asyncio.run(a.issue_info("k98e9d"))
-    result=a.teration_info_list()
-    print(result)
+    # result=a.report_info("sf070d","65dff17be351e872d3f93bed")
+    result=a.test_report_list()
+    for i in result:
+        print(i)
     # a = DevopsTestCase(username="zt20283", password="Huxin!23", start_date="2023-07-01", end_date="2023-07-31")
     # a = CheckTestCase(username="zt20257", password="900713hb@")
     # a = DevopsGroupData(project_id="t196b9", user_id="zt21255")
